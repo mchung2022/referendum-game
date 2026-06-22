@@ -1,0 +1,164 @@
+/**
+ * 「民主大作戰：公投小達人！」線上遊戲 - 後端 Google Apps Script
+ * 
+ * 使用方式：
+ * 1. 建立一個新的 Google 試算表 (Google Sheets)。
+ * 2. 點選選單的「擴充功能」->「Apps Script」。
+ * 3. 將此檔案的所有程式碼複製並貼上，覆蓋原本的內容。
+ * 4. 點選「儲存」(儲存專案)。
+ * 5. 點選「網頁應用程式部署」：
+ *    - 點選右上角「部署」->「新增部署」。
+ *    - 選取類型：選取「網頁應用程式」。
+ *    - 說明：輸入「公投遊戲後端」。
+ *    - 專案執行身分：選擇「我」(您的 Google 帳號)。
+ *    - 誰有存取權：選擇「所有人」(Anyone)。
+ *    - 點選「部署」。
+ * 6. 授權存取（若有跳出安全性警告，點選「進階」並允許存取）。
+ * 7. 複製產生的「網頁應用程式 URL」，將其填入遊戲網頁的後台設定中。
+ */
+
+function doGet(e) {
+  var action = e.parameter.action;
+  
+  if (action === 'getLeaderboard') {
+    return handleGetLeaderboard();
+  } else if (action === 'getStats') {
+    return handleGetStats();
+  } else {
+    // 預設返回排行榜與統計資訊
+    var data = {
+      leaderboard: getLeaderboardData(),
+      stats: getStatsData()
+    };
+    return sendJsonResponse(data);
+  }
+}
+
+function doPost(e) {
+  try {
+    var postData;
+    if (e.postData && e.postData.contents) {
+      postData = JSON.parse(e.postData.contents);
+    } else {
+      postData = e.parameter;
+    }
+    
+    var name = postData.name || "匿名學生";
+    var classId = postData.classId || "未填寫";
+    var score = parseInt(postData.score) || 0;
+    var timeSec = parseInt(postData.timeSec) || 0;
+    var topic = postData.topic || "未知議題";
+    var voteResult = postData.voteResult || "無效票";
+    
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
+    // 如果是空試算表，先初始化標頭
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(["時間戳記", "姓名", "班級座號", "公投議題", "遊戲得分", "所花時間(秒)", "公投投票"]);
+      // 設定標頭格式為粗體
+      sheet.getRange(1, 1, 1, 7).setFontWeight("bold").setBackground("#e6f7ff");
+    }
+    
+    // 新增一筆記錄
+    sheet.appendRow([
+      new Date(),
+      name,
+      classId,
+      topic,
+      score,
+      timeSec,
+      voteResult
+    ]);
+    
+    // 寫入成功後，即時返回最新排行榜與統計
+    var responseData = {
+      success: true,
+      leaderboard: getLeaderboardData(),
+      stats: getStatsData()
+    };
+    
+    return sendJsonResponse(responseData);
+    
+  } catch (error) {
+    return sendJsonResponse({
+      success: false,
+      error: error.toString()
+    });
+  }
+}
+
+// 取得前 20 名排行榜 (分數由高到低，時間由短到長)
+function getLeaderboardData() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  if (sheet.getLastRow() <= 1) return [];
+  
+  var range = sheet.getRange(2, 1, sheet.getLastRow() - 1, 7);
+  var values = range.getValues();
+  
+  var list = [];
+  for (var i = 0; i < values.length; i++) {
+    list.push({
+      timestamp: values[i][0],
+      name: values[i][1],
+      classId: values[i][2],
+      topic: values[i][3],
+      score: parseInt(values[i][4]) || 0,
+      timeSec: parseInt(values[i][5]) || 0,
+      voteResult: values[i][6]
+    });
+  }
+  
+  // 排序：分數降冪，時間升冪
+  list.sort(function(a, b) {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    return a.timeSec - b.timeSec;
+  });
+  
+  // 只取前 20 名
+  return list.slice(0, 20);
+}
+
+// 取得投票統計數據
+function getStatsData() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  if (sheet.getLastRow() <= 1) return { agree: 0, disagree: 0, total: 0 };
+  
+  var range = sheet.getRange(2, 7, sheet.getLastRow() - 1, 1); // 讀取投票結果那一欄
+  var values = range.getValues();
+  
+  var agree = 0;
+  var disagree = 0;
+  var invalid = 0;
+  
+  for (var i = 0; i < values.length; i++) {
+    var v = values[i][0];
+    if (v === "同意" || v === "Agree" || v === "贊成") {
+      agree++;
+    } else if (v === "不同意" || v === "Disagree" || v === "反對") {
+      disagree++;
+    } else {
+      invalid++;
+    }
+  }
+  
+  var total = agree + disagree + invalid;
+  
+  return {
+    agree: agree,
+    disagree: disagree,
+    invalid: invalid,
+    total: total
+  };
+}
+
+// 包裝 JSON 回傳
+function sendJsonResponse(data) {
+  var json = JSON.stringify(data);
+  return ContentService.createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader("Access-Control-Allow-Origin", "*")
+    .setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    .setHeader("Access-Control-Allow-Headers", "Content-Type");
+}

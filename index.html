@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>民主大作戰：公投小達人！線上學習遊戲</title>
+    <meta name="description" content="專為國中學生設計的公民投票線上互動學習遊戲，結合公投法規、思辨訓練與投票模擬。">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 背景漂浮泡泡動畫 -->
+    <div class="bg-decorations">
+        <div class="bubble" style="left: 10%; width: 80px; height: 80px; animation-delay: 0s; animation-duration: 15s;"></div>
+        <div class="bubble" style="left: 20%; width: 120px; height: 120px; animation-delay: 2s; animation-duration: 25s;"></div>
+        <div class="bubble" style="left: 55%; width: 60px; height: 60px; animation-delay: 4s; animation-duration: 18s;"></div>
+        <div class="bubble" style="left: 80%; width: 100px; height: 100px; animation-delay: 1s; animation-duration: 22s;"></div>
+        <div class="bubble" style="left: 40%; width: 90px; height: 90px; animation-delay: 6s; animation-duration: 20s;"></div>
+        <div class="bubble" style="left: 90%; width: 70px; height: 70px; animation-delay: 8s; animation-duration: 14s;"></div>
+    </div>
+
+    <!-- 頁首區塊 -->
+    <header>
+        <div class="logo">
+            <span class="logo-icon">🗳️</span>
+            <span class="logo-text">民主大作戰：公投小達人！</span>
+        </div>
+        <button id="btn-open-settings" class="settings-btn" title="系統設定" aria-label="開啟設定">⚙️</button>
+    </header>
+
+    <!-- 遊戲主區塊 -->
+    <main>
+        <!-- ================= 歡迎/登入畫面 ================= -->
+        <section id="view-welcome" class="view active">
+            <div class="game-card">
+                <h1>🗳️ 民主大作戰：公投小達人！</h1>
+                <p style="text-align: center;">哈囉！準備好體驗一場真實的公民投票了嗎？你將化身為公投提案人，帶領大家完成連署、進行思辨辯論，並親自投下神聖的一票，看看你的提案最後能不能順利通過門檻！</p>
+                
+                <div class="input-group">
+                    <label for="input-name">你的大名/暱稱：</label>
+                    <input type="text" id="input-name" placeholder="請輸入名字或暱稱" required>
+                </div>
+                
+                <div class="input-group">
+                    <label for="input-class">班級與座號 (選填)：</label>
+                    <input type="text" id="input-class" placeholder="例如：八年三班15號">
+                </div>
+
+                <div class="input-group">
+                    <label>請選擇本次模擬公投的「提案主題」：</label>
+                    <div class="topic-grid">
+                        <div class="topic-card selected" data-topic="phone">
+                            <div class="icon">📱</div>
+                            <h3>校園手機開放案</h3>
+                            <p>「您是否同意：國中校園應開放學生於下課時間自由使用個人手機？」</p>
+                        </div>
+                        <div class="topic-card" data-topic="shelter">
+                            <div class="icon">🐶</div>
+                            <h3>社區動物收容中心案</h3>
+                            <p>「您是否同意：在我們社區興建一座流浪貓狗收容與生命教育中心？」</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-start-game" class="btn">開始公投大挑戰！🚀</button>
+            </div>
+        </section>
+
+        <!-- ================= 第一關：公投連署大作戰 ================= -->
+        <section id="view-stage1" class="view">
+            <div class="game-card">
+                <div class="stage-banner">
+                    <span class="stage-num">STAGE 01 / 公投提案與連署</span>
+                    <span class="timer">⏱️ 計時: <span id="s1-timer-val">0</span> 秒</span>
+                </div>
+                
+                <h2>第一關：公投連署大作戰！</h2>
+                <p>公投提案被中選會受理後，需要募集足夠的連署書。依照台灣《公民投票法》，連署人數必須達到最近一次總統選舉投票權人總數的 **1.5%** (約 28 萬人)。</p>
+                <p><strong>遊戲規則：</strong> 請回答以下 3 題公投法規問題。每答對一題，就能獲得 1,000 份連署書。我們需要集滿 <strong>2,000 份以上</strong>才能跨越連署門檻並進入下一關！</p>
+                
+                <div class="progress-container">
+                    <div id="s1-progress" class="progress-fill"></div>
+                </div>
+                <div style="text-align: right; margin-bottom: 20px; font-weight: bold; font-family: var(--font-en);" id="s1-progress-text">
+                    已收集連署書：0 / 3,000 份
+                </div>
+
+                <div class="quiz-container">
+                    <div class="question-text" id="quiz-question">讀取問題中...</div>
+                    <div class="options-list" id="quiz-options">
+                        <!-- 選項按鈕動態生成 -->
+                    </div>
+                    <div class="explanation-panel" id="quiz-explanation">
+                        <!-- 解析說明動態顯示 -->
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; display: flex; gap: 15px;">
+                    <button id="btn-next-q" class="btn" style="display: none;">下一題 ➡️</button>
+                    <button id="btn-finish-s1" class="btn btn-accent" style="display: none;">完成連署，送交中選會！📂</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 第二關：議題大辯論 ================= -->
+        <section id="view-stage2" class="view">
+            <div class="game-card">
+                <div class="stage-banner">
+                    <span class="stage-num">STAGE 02 / 社會思辨與論述</span>
+                    <span class="timer">⏱️ 計時: <span id="s2-timer-val">0</span> 秒</span>
+                </div>
+
+                <h2>第二關：議題大辯論！</h2>
+                <p>提案通過連署了！現在進入激烈的社會討論期。網路上有各式各樣的言論，請展現你的<strong>公民識讀能力</strong>！</p>
+                <p><strong>遊戲規則：</strong> 請閱讀畫面上的言論卡牌，判斷它是屬於「<strong>贊成意見</strong>」、「<strong>反對意見</strong>」還是帶有偏見、假訊息的「<strong>不實與情緒言論</strong>」。分類正確可獲得 200 分，答錯會扣 100 分喔！(共 6 張卡牌)</p>
+
+                <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px;">
+                    <span>進度：<span id="s2-card-idx" style="font-family: var(--font-en);">1</span> / 6</span>
+                    <span>得分：<span id="s2-score" style="font-family: var(--font-en);">0</span> 分</span>
+                </div>
+                <div class="progress-container">
+                    <div id="s2-progress" class="progress-fill"></div>
+                </div>
+
+                <div class="card-arena">
+                    <div class="debate-card" id="debate-card">
+                        <div class="card-content" id="card-content">正在加載思辨論述...</div>
+                        <div class="source" id="card-source">—— 來源</div>
+                    </div>
+                </div>
+
+                <div class="sorting-buttons">
+                    <button class="btn btn-accent sort-btn" data-category="pro">👍 贊成論點</button>
+                    <button class="btn btn-secondary sort-btn" data-category="con">👎 反對論點</button>
+                    <button class="btn btn-danger sort-btn" data-category="invalid">⚠️ 情緒/不實言論</button>
+                </div>
+
+                <div style="margin-top: 25px;">
+                    <button id="btn-finish-s2" class="btn" style="display: none;">思辨結束，前往投票所！🚶‍♂️</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 第三關：走入投票所 ================= -->
+        <section id="view-stage3" class="view">
+            <div class="game-card">
+                <div class="stage-banner">
+                    <span class="stage-num">STAGE 03 / 投票所模擬體驗</span>
+                    <span class="timer">⏱️ 計時: <span id="s3-timer-val">0</span> 秒</span>
+                </div>
+
+                <h2>第三關：走入投票所</h2>
+                <p>公投投票日到了！體驗真實公投的投票流程。請依照左側指示，在右側區域完成互動操作。</p>
+
+                <div class="polling-booth">
+                    <div class="booth-left">
+                        <div class="step-indicator">
+                            <div class="step-node active" id="step-node-1">
+                                <div class="step-num-badge">1</div>
+                                <div><strong>出示身分證與印章</strong><br><span style="font-size: 0.8rem; color: var(--text-muted);">核對選民身份</span></div>
+                            </div>
+                            <div class="step-node" id="step-node-2">
+                                <div class="step-num-badge">2</div>
+                                <div><strong>領取公投選票</strong><br><span style="font-size: 0.8rem; color: var(--text-muted);">取得空白選票</span></div>
+                            </div>
+                            <div class="step-node" id="step-node-3">
+                                <div class="step-num-badge">3</div>
+                                <div><strong>圈選處圈選</strong><br><span style="font-size: 0.8rem; color: var(--text-muted);">使用選票與工具</span></div>
+                            </div>
+                            <div class="step-node" id="step-node-4">
+                                <div class="step-num-badge">4</div>
+                                <div><strong>投入票匭</strong><br><span style="font-size: 0.8rem; color: var(--text-muted);">完成公投投票</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="booth-right" id="booth-interactive-area">
+                        <!-- Step 1 互動：身份核對桌面 -->
+                        <div id="polling-step1" style="width: 100%; text-align: center;">
+                            <p style="margin-bottom: 20px;">請點選桌上的身分證與印章，交給選務人員進行驗證。</p>
+                            <div class="desk-items">
+                                <div class="desk-item" id="item-idcard">
+                                    <div class="item-icon">🪪</div>
+                                    <div class="item-name">國民身分證</div>
+                                </div>
+                                <div class="desk-item" id="item-stamp">
+                                    <div class="item-icon">🪵</div>
+                                    <div class="item-name">個人印章</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 互動：領票處 -->
+                        <div id="polling-step2" style="width: 100%; text-align: center; display: none;">
+                            <p style="margin-bottom: 20px;">選務人員確認你有投票權！請點選「選票箱」來領取你的空白公投選票。</p>
+                            <div class="desk-item" id="item-getballot" style="max-width: 200px; margin: 0 auto;">
+                                <div class="item-icon">✉️</div>
+                                <div class="item-name">領取選票</div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 互動：圈選處 -->
+                        <div id="polling-step3" style="width: 100%; display: none; flex-direction: column; align-items: center;">
+                            <p style="text-align: center; margin-bottom: 10px;">請在選票上的「同意」或「不同意」欄位中點擊蓋章。</p>
+                            
+                            <div class="ballot-paper" id="interactive-ballot">
+                                <div class="ballot-header">公民投票選票</div>
+                                <div class="ballot-topic" id="ballot-topic-text">議題標題</div>
+                                <div class="ballot-choices">
+                                    <div class="ballot-choice" id="choice-agree">
+                                        <div class="choice-label" style="color: #10b981;">同意</div>
+                                        <div class="stamp-circle" id="circle-agree">
+                                            <!-- 印記動態產生 -->
+                                        </div>
+                                    </div>
+                                    <div class="ballot-choice" id="choice-disagree">
+                                        <div class="choice-label" style="color: #ef4444;">不同意</div>
+                                        <div class="stamp-circle" id="circle-disagree">
+                                            <!-- 印記動態產生 -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 圈選工具選擇 -->
+                            <div style="display: flex; gap: 15px; margin-top: 15px; width: 100%;">
+                                <div class="desk-item" id="tool-official-stamp" style="border: 2px solid var(--accent);">
+                                    <div class="item-icon" style="font-size: 1.5rem;">🔴</div>
+                                    <div class="item-name" style="font-size: 0.75rem;">官方圈選章 (⭕有線)</div>
+                                </div>
+                                <div class="desk-item" id="tool-personal-stamp">
+                                    <div class="item-icon" style="font-size: 1.5rem;">🪵</div>
+                                    <div class="item-name" style="font-size: 0.75rem;">個人私章 (會變無效票!)</div>
+                                </div>
+                            </div>
+                            <div class="stamp-tool-info" id="tool-info-text">
+                                目前使用工具：官方圈選章
+                            </div>
+                        </div>
+
+                        <!-- Step 4 互動：投入票匭 -->
+                        <div id="polling-step4" style="width: 100%; text-align: center; display: none;">
+                            <p style="margin-bottom: 20px;">太棒了！你已經完成圈選。請點選底下的「公投票匭」，將你的公投票投入票箱中！</p>
+                            <div class="ballot-box-container" id="ballot-box-target">
+                                <div class="ballot-box-icon">📥</div>
+                                <div style="font-weight: bold; color: var(--accent);">投票箱</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button id="btn-finish-s3" class="btn" style="display: none;">投票完成，前往開票所！📣</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 第四關：開票與結算 ================= -->
+        <section id="view-stage4" class="view">
+            <div class="game-card">
+                <div class="stage-banner">
+                    <span class="stage-num">STAGE 04 / 開票結果與門檻計算</span>
+                    <span class="timer">⏱️ 計時: <span id="s4-timer-val">0</span> 秒</span>
+                </div>
+
+                <h2>第四關：開票與結算</h2>
+                <p>全台灣的投票所已經開票完畢！現在讓我們來進行統計，並計算是否通過《公民投票法》規定的雙重門檻：</p>
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 15px; border-radius: var(--border-radius-sm); margin-bottom: 20px; font-size: 0.9rem;">
+                    <strong>📖 台灣公投法通過門檻：</strong><br>
+                    1. 同意票數多於不同意票數。<br>
+                    2. 同意票數必須達到「投票權人總數的 1/4 以上」。(模擬選民總數為 10,000 人，因此 1/4 門檻為 <strong>2,500 票</strong>)。
+                </div>
+
+                <div class="counting-dashboard">
+                    <div style="text-align: center; font-size: 1.1rem; font-weight: bold;">
+                        主題：<span id="counting-topic-title" style="color: var(--accent);">手機開放案</span>
+                    </div>
+
+                    <div class="bar-chart-container">
+                        <!-- 同意票進度 -->
+                        <div class="chart-bar-row">
+                            <div class="chart-bar-info">
+                                <span>👍 同意票</span>
+                                <span id="agree-votes-display" style="font-family: var(--font-en);">0 票 (0%)</span>
+                            </div>
+                            <div class="chart-bar-bg">
+                                <div class="threshold-marker"></div>
+                                <div class="threshold-label">1/4 門檻 (2,500票)</div>
+                                <div id="bar-agree" class="chart-bar-fill agree"></div>
+                            </div>
+                        </div>
+
+                        <!-- 不同意票進度 -->
+                        <div class="chart-bar-row" style="margin-top: 10px;">
+                            <div class="chart-bar-info">
+                                <span>👎 不同意票</span>
+                                <span id="disagree-votes-display" style="font-family: var(--font-en);">0 票 (0%)</span>
+                            </div>
+                            <div class="chart-bar-bg">
+                                <div id="bar-disagree" class="chart-bar-fill disagree"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 門檻檢驗清單 -->
+                    <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 20px; border-radius: var(--border-radius-md); display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>條件一：同意票數大於不同意票數？</span>
+                            <span id="cond-more-agree" style="font-weight: bold;">計算中...</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>條件二：同意票數達 2,500 票 (1/4 門檻)？</span>
+                            <span id="cond-reach-threshold" style="font-weight: bold;">計算中...</span>
+                        </div>
+                    </div>
+
+                    <!-- 通過/不通過看板 -->
+                    <div id="result-pass-card" class="pass-card">
+                        <h3>🎉 公民投票：通過！</h3>
+                        <p>本案已跨越雙重門檻，政府應依照公投結果推行相關政策或立法！</p>
+                    </div>
+                    <div id="result-fail-card" class="fail-card">
+                        <h3>❌ 公民投票：不通過！</h3>
+                        <p>本案因未滿足雙重門檻（同意票未過半，或未達 1/4 門檻），因此不予通過！</p>
+                    </div>
+
+                    <button id="btn-finish-s4" class="btn" style="display: none;">查看個人成績與排行榜 🏆</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 遊戲結算與排行榜畫面 ================= -->
+        <section id="view-results" class="view">
+            <div class="game-card">
+                <h1>🏆 遊戲學習報告與排行榜</h1>
+                <p style="text-align: center; margin-bottom: 25px;">恭喜你完成了整套公投流程！以下是你的學習表現：</p>
+
+                <!-- 資料庫連線狀態 -->
+                <div class="db-sync-status" id="db-status-container">
+                    <span class="spinner" id="db-status-spinner">🔄</span>
+                    <span id="db-status-text">正在將成績上傳至 Google Sheet 試算表...</span>
+                </div>
+
+                <div class="result-summary">
+                    <div class="summary-card">
+                        <div class="summary-val" id="res-val-score">0</div>
+                        <div class="summary-lbl">遊戲總得分</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-val" id="res-val-time">0 秒</div>
+                        <div class="summary-lbl">總花費時間</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-val" id="res-val-status">有效票</div>
+                        <div class="summary-lbl">選票有效性</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-val" id="res-val-vote">同意</div>
+                        <div class="summary-lbl">你的公投選擇</div>
+                    </div>
+                </div>
+
+                <!-- 模擬統計 -->
+                <h2 style="margin-top: 30px; text-align: center;">📊 歷屆玩家公投傾向統計</h2>
+                <p style="text-align: center; font-size: 0.9rem;">(資料取自 Google Sheet 試算表統計)</p>
+                <div class="bar-chart-container" style="margin-bottom: 30px;">
+                    <div class="chart-bar-row">
+                        <div class="chart-bar-info">
+                            <span>👍 全體同意票比例</span>
+                            <span id="global-agree-pct">0%</span>
+                        </div>
+                        <div class="chart-bar-bg">
+                            <div id="global-bar-agree" class="chart-bar-fill agree" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div class="chart-bar-row" style="margin-top: 15px;">
+                        <div class="chart-bar-info">
+                            <span>👎 全體不同意票比例</span>
+                            <span id="global-disagree-pct">0%</span>
+                        </div>
+                        <div class="chart-bar-bg">
+                            <div id="global-bar-disagree" class="chart-bar-fill disagree" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 排行榜區塊 -->
+                <div class="leaderboard-section">
+                    <h2>🏆 學生成績排行榜 (Top 10)</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 70px; text-align: center;">名次</th>
+                                    <th>班級座號</th>
+                                    <th>姓名</th>
+                                    <th style="text-align: center;">得分</th>
+                                    <th style="text-align: center;">所花時間</th>
+                                    <th>投票選擇</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-tbody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; color: var(--text-muted);">載入排行榜中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="margin-top: 35px; display: flex; gap: 15px;">
+                    <button id="btn-restart" class="btn btn-secondary">再挑戰一次 🔄</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ================= 系統設定 Modal ================= -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: #ffffff;">⚙️ 系統後台設定</h3>
+                <button id="btn-close-settings" class="modal-close">&times;</button>
+            </div>
+            <p style="font-size: 0.9rem; margin-bottom: 20px;">教師或管理者可在這裡貼入 Google Apps Script 網頁應用程式 URL，將資料直接串接到自訂的 Google 試算表中。</p>
+            
+            <div class="input-group">
+                <label for="input-gas-url">Google Apps Script API 網址：</label>
+                <textarea id="input-gas-url" rows="3" placeholder="https://script.google.com/macros/s/.../exec" style="resize: vertical; font-family: monospace; font-size: 0.9rem;"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button id="btn-test-connection" class="btn btn-accent" style="padding: 10px 15px; font-size: 0.95rem;">測試連線 ⚡</button>
+                <button id="btn-save-settings" class="btn" style="padding: 10px 15px; font-size: 0.95rem;">儲存設定 💾</button>
+            </div>
+            
+            <div id="settings-test-result" style="margin-top: 15px; font-size: 0.85rem; font-weight: bold; text-align: center; display: none;">
+                測試結果
+            </div>
+        </div>
+    </div>
+
+    <!-- 載入核心邏輯 JS -->
+    <script src="app.js"></script>
+</body>
+</html>
