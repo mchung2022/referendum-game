@@ -5,7 +5,7 @@
 // ================= 全局配置與狀態 =================
 const CONFIG = {
     // 預設為空。教師可在遊戲右上角設定，或者在此直接寫入 GAS 網頁部署網址
-    googleAppScriptUrl: "https://script.google.com/macros/s/AKfycbyNNwoWBp2YXurq3wg1g4Zd3O__16zbCuiwsWTP5y28K1eZiCkBTcDdTpn1O6u4-Q3U0w/exec" 
+    googleAppScriptUrl: "https://script.google.com/macros/s/AKfycbzILx4rzCLuIwxT3yQlgN8gnepRSNsnZAr-Yl7gsU_3vN03kOIK0knMXM4ZIm4xWRdGaA/exec" 
 };
 
 const gameState = {
