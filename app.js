@@ -846,7 +846,7 @@ async function finishGame() {
         valVote.style.color = "var(--danger)";
     } else {
         valVote.textContent = "無投票印記";
-        valVote.style.color = var(--text-muted);
+        valVote.style.color = "var(--text-muted)";
     }
     
     showView("results");
