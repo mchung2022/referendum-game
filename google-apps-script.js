@@ -1,5 +1,5 @@
 /**
- * 「民主大作戰：公投小達人！」線上遊戲 - 後端 Google Apps Script
+ * 「民主大作戰：公投小達人！」線上遊戲 - 後端 Google Apps Script (完整修正版)
  * 
  * 使用方式：
  * 1. 建立一個新的 Google 試算表 (Google Sheets)。
@@ -55,8 +55,7 @@ function doGet(e) {
     var jsonString = JSON.stringify(responseData);
     var callbackSource = callback + "(" + jsonString + ");";
     return ContentService.createTextOutput(callbackSource)
-      .setMimeType(ContentService.MimeType.JAVASCRIPT)
-      .setHeader("Access-Control-Allow-Origin", "*");
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
   } else {
     // 否則回傳一般 JSON
     return sendJsonResponse(responseData);
@@ -192,12 +191,9 @@ function getStatsData() {
   };
 }
 
-// 包裝 JSON 回傳
+// 包裝 JSON 回傳 (移除了不支援的 setHeader 呼叫，由 Google 伺服器自動處理跨網域)
 function sendJsonResponse(data) {
   var json = JSON.stringify(data);
   return ContentService.createTextOutput(json)
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader("Access-Control-Allow-Origin", "*")
-    .setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    .setHeader("Access-Control-Allow-Headers", "Content-Type");
+    .setMimeType(ContentService.MimeType.JSON);
 }
