@@ -18,30 +18,53 @@
  */
 
 function doGet(e) {
-  // 防呆：若是直接在 Apps Script 編輯器點選「執行」，e 會是 undefined
+  // 防呆：如果是從編輯器直接點選「執行」，e 會是 undefined
   if (!e || !e.parameter) {
-    return ContentService.createTextOutput("⚠️ 提示：您目前是從 Google Apps Script 編輯器直接按「執行」按鈕，此時系統沒有傳入網頁參數，所以會顯示此提示。這是正常的！請依照 README.md 的說明，將此專案「部署為網頁應用程式」，並使用部署產生的「網頁應用程式 URL」來連接遊戲前端即可。")
+    return ContentService.createTextOutput("⚠️ 提示：您目前是從 Google Apps Script 編輯器直接按「執行」按鈕，此時系統沒有傳入網頁參數。請將此專案「部署為網頁應用程式」，並使用部署產生的網址來連接遊戲前端。")
       .setMimeType(ContentService.MimeType.TEXT);
   }
   
   var action = e.parameter.action;
+  var callback = e.parameter.callback; // 用於 JSONP 的 Callback 函式名稱
+  var responseData;
   
-  if (action === 'getLeaderboard') {
-    return handleGetLeaderboard();
-  } else if (action === 'getStats') {
-    return handleGetStats();
-  } else {
-    // 預設返回排行榜與統計資訊
-    var data = {
-      leaderboard: getLeaderboardData(),
-      stats: getStatsData()
+  try {
+    if (action === 'submit') {
+      // 透過 GET 提交資料 (解決 CORS 與多帳號登入導致的 NetworkError)
+      responseData = handleSubmitData(e.parameter);
+    } else if (action === 'getLeaderboard') {
+      responseData = getLeaderboardData();
+    } else if (action === 'getStats') {
+      responseData = getStatsData();
+    } else {
+      // 預設返回全部
+      responseData = {
+        leaderboard: getLeaderboardData(),
+        stats: getStatsData()
+      };
+    }
+  } catch (error) {
+    responseData = {
+      success: false,
+      error: error.toString()
     };
-    return sendJsonResponse(data);
+  }
+  
+  // 輸出處理：如果是 JSONP 請求，包裝成 JS Callback 執行
+  if (callback) {
+    var jsonString = JSON.stringify(responseData);
+    var callbackSource = callback + "(" + jsonString + ");";
+    return ContentService.createTextOutput(callbackSource)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT)
+      .setHeader("Access-Control-Allow-Origin", "*");
+  } else {
+    // 否則回傳一般 JSON
+    return sendJsonResponse(responseData);
   }
 }
 
+// 相容 doPost
 function doPost(e) {
-  // 防呆：若是直接在 Apps Script 編輯器點選「執行」，e 會是 undefined
   if (!e) {
     return sendJsonResponse({
       success: false,
@@ -57,41 +80,8 @@ function doPost(e) {
       postData = e.parameter;
     }
     
-    var name = postData.name || "匿名學生";
-    var classId = postData.classId || "未填寫";
-    var score = parseInt(postData.score) || 0;
-    var timeSec = parseInt(postData.timeSec) || 0;
-    var topic = postData.topic || "未知議題";
-    var voteResult = postData.voteResult || "無效票";
-    
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    
-    // 如果是空試算表，先初始化標頭
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(["時間戳記", "姓名", "班級座號", "公投議題", "遊戲得分", "所花時間(秒)", "公投投票"]);
-      // 設定標頭格式為粗體
-      sheet.getRange(1, 1, 1, 7).setFontWeight("bold").setBackground("#e6f7ff");
-    }
-    
-    // 新增一筆記錄
-    sheet.appendRow([
-      new Date(),
-      name,
-      classId,
-      topic,
-      score,
-      timeSec,
-      voteResult
-    ]);
-    
-    // 寫入成功後，即時返回最新排行榜與統計
-    var responseData = {
-      success: true,
-      leaderboard: getLeaderboardData(),
-      stats: getStatsData()
-    };
-    
-    return sendJsonResponse(responseData);
+    var result = handleSubmitData(postData);
+    return sendJsonResponse(result);
     
   } catch (error) {
     return sendJsonResponse({
@@ -99,6 +89,41 @@ function doPost(e) {
       error: error.toString()
     });
   }
+}
+
+// 寫入試算表記錄的主程式
+function handleSubmitData(data) {
+  var name = data.name || "匿名學生";
+  var classId = data.classId || "未填寫";
+  var score = parseInt(data.score) || 0;
+  var timeSec = parseInt(data.timeSec) || 0;
+  var topic = data.topic || "未知議題";
+  var voteResult = data.voteResult || "無效票";
+  
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  
+  // 如果是空試算表，先初始化標頭
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["時間戳記", "姓名", "班級座號", "公投議題", "遊戲得分", "所花時間(秒)", "公投投票"]);
+    sheet.getRange(1, 1, 1, 7).setFontWeight("bold").setBackground("#e6f7ff");
+  }
+  
+  // 新增一筆記錄
+  sheet.appendRow([
+    new Date(),
+    name,
+    classId,
+    topic,
+    score,
+    timeSec,
+    voteResult
+  ]);
+  
+  return {
+    success: true,
+    leaderboard: getLeaderboardData(),
+    stats: getStatsData()
+  };
 }
 
 // 取得前 20 名排行榜 (分數由高到低，時間由短到長)

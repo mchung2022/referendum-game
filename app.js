@@ -229,14 +229,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         try {
-            // 發送一個測試的 GET 請求
-            const testUrl = url + (url.includes('?') ? '&' : '?') + 'action=getStats';
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 6000); // 6秒超時
-            
-            const response = await fetch(testUrl, { signal: controller.signal });
-            clearTimeout(id);
-            const data = await response.json();
+            // 使用 JSONP 發送一個測試的 GET 請求 (避免 CORS 與多帳號登入問題)
+            const data = await fetchJsonp(url, { action: "getStats" });
             
             if (data && typeof data.agree !== 'undefined') {
                 resultDiv.style.color = "var(--accent)";
@@ -248,7 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             console.error(error);
             resultDiv.style.color = "var(--danger)";
-            resultDiv.textContent = "❌ 連線失敗！請檢查網址是否正確，且 Apps Script 必須設定為「所有人」有存取權。";
+            resultDiv.textContent = "❌ 連線失敗：" + error.message;
         }
     });
 
@@ -865,13 +859,60 @@ async function finishGame() {
 }
 
 // 串接 Google Sheet API (發送與獲取)
+// ---------------- JSONP 通訊輔助函式 (免去 CORS 限制) ----------------
+function fetchJsonp(url, params) {
+    return new Promise((resolve, reject) => {
+        const callbackName = 'jsonp_cb_' + Math.round(1000000 * Math.random());
+        
+        // 解析並組合 URL 參數
+        const urlObj = new URL(url);
+        Object.keys(params).forEach(key => {
+            urlObj.searchParams.append(key, params[key]);
+        });
+        urlObj.searchParams.append('callback', callbackName);
+        
+        // 12 秒連線超時處理
+        const timeoutId = setTimeout(() => {
+            cleanup();
+            reject(new Error('伺服器連線超時，請檢查 Apps Script 是否部署正確並設定「所有人」皆可存取。'));
+        }, 12000);
+        
+        function cleanup() {
+            delete window[callbackName];
+            const script = document.getElementById(callbackName);
+            if (script) {
+                script.parentNode.removeChild(script);
+            }
+            clearTimeout(timeoutId);
+        }
+        
+        // 全域回呼函式
+        window[callbackName] = function(data) {
+            cleanup();
+            resolve(data);
+        };
+        
+        // 建立 Script 節點載入
+        const script = document.createElement('script');
+        script.id = callbackName;
+        script.src = urlObj.toString();
+        script.onerror = function() {
+            cleanup();
+            reject(new Error('網路連線失敗，請確認您的網路狀況或 API 網址是否正確。'));
+        };
+        
+        document.body.appendChild(script);
+    });
+}
+
 async function syncLeaderboardAndStats() {
     const gasUrl = getGasUrl();
     const statusContainer = document.getElementById("db-status-container");
     const statusText = document.getElementById("db-status-text");
     const spinner = document.getElementById("db-status-spinner");
     
-    const payload = {
+    const params = {
+        action: "submit",
         name: gameState.playerName,
         classId: gameState.classId,
         score: gameState.score,
@@ -885,7 +926,7 @@ async function syncLeaderboardAndStats() {
         statusText.textContent = "💡 未設定 Google Sheet API。使用本地暫存模擬排行數據。";
         spinner.style.display = "none";
         
-        saveLocalRecord(payload);
+        saveLocalRecord(params);
         renderLocalLeaderboard();
         renderLocalStats();
         return;
@@ -895,18 +936,8 @@ async function syncLeaderboardAndStats() {
         statusText.textContent = "正在將您的成績上傳至雲端試算表...";
         spinner.style.display = "inline-block";
         
-        // 為了支援 CORS，通常在 Apps Script 會在 doPost 回傳 JSON。
-        // 但 fetch 可能遇到 Redirect (302) 狀況，這是正常且 Apps Script 會處理的。
-        const response = await fetch(gasUrl, {
-            method: "POST",
-            mode: "cors",
-            headers: {
-                "Content-Type": "text/plain" // 避免觸發 OPTIONS preflight 造成跨網域問題
-            },
-            body: JSON.stringify(payload)
-        });
-        
-        const data = await response.json();
+        // 使用 JSONP 提交 (免去所有 CORS 與帳號跳轉導致的 NetworkError)
+        const data = await fetchJsonp(gasUrl, params);
         
         if (data.success) {
             statusText.textContent = "✅ 資料同步成功！雲端數據載入完成。";
@@ -920,10 +951,10 @@ async function syncLeaderboardAndStats() {
         
     } catch (error) {
         console.error("雲端上傳失敗：", error);
-        statusText.innerHTML = `⚠️ 雲端上傳失敗 (請確認 Apps Script 已正確部署並允許所有人存取)。<br>已暫存於本地：${error.message}`;
+        statusText.innerHTML = `⚠️ 雲端上傳失敗 (已自動轉為本地暫存)：${error.message}`;
         spinner.style.display = "none";
         
-        saveLocalRecord(payload);
+        saveLocalRecord(params);
         renderLocalLeaderboard();
         renderLocalStats();
     }
