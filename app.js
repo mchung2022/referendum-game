@@ -393,11 +393,13 @@ function handleQuizAnswer(option, clickedBtn, explanation) {
 let s2CurrentCardIdx = 0;
 let s2Deck = [];
 let s2Score = 0;
+let s2IsTransitioning = false;
 
 function initStage2() {
     gameState.currentStage = 2;
     s2CurrentCardIdx = 0;
     s2Score = 0;
+    s2IsTransitioning = false;
     s2Deck = [...TOPIC_DEBATE_CARDS[gameState.topic]];
     
     // 打亂卡牌順序
@@ -468,6 +470,12 @@ function loadDebateCard() {
 }
 
 function handleCardSort(userCategory) {
+    // 防止重複點擊造成越界錯誤或動畫卡住
+    if (s2IsTransitioning || s2CurrentCardIdx >= s2Deck.length) {
+        return;
+    }
+    s2IsTransitioning = true;
+    
     const card = s2Deck[s2CurrentCardIdx];
     const cardEl = document.getElementById("debate-card");
     const isCorrect = card.category === userCategory;
@@ -502,6 +510,7 @@ function handleCardSort(userCategory) {
     setTimeout(() => {
         cardEl.style.borderColor = "var(--glass-border)";
         loadDebateCard();
+        s2IsTransitioning = false;
     }, 350);
 }
 
