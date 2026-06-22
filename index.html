@@ -301,8 +301,22 @@
                         </div>
                     </div>
 
-                    <!-- 門檻檢驗清單 -->
-                    <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 20px; border-radius: var(--border-radius-md); display: flex; flex-direction: column; gap: 10px;">
+                    <!-- 學生判斷選擇區塊 -->
+                    <div id="judgement-container" style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 25px; border-radius: var(--border-radius-md); margin-top: 15px; display: none;">
+                        <h3 style="font-size: 1.25rem; color: var(--warning); margin-bottom: 12px; text-align: center;">🤔 判斷時間！本公投案是否通過門檻？</h3>
+                        <p style="font-size: 0.95rem; text-align: center; margin-bottom: 18px;">請仔細觀察上方同意票與不同意票的票數，並做出你的法規判斷：</p>
+                        
+                        <div class="options-list" id="judgement-options">
+                            <!-- 選擇按鈕由 JS 動態生成 -->
+                        </div>
+                        
+                        <div class="explanation-panel" id="judgement-explanation" style="margin-top: 15px;">
+                            <!-- 解析說明 -->
+                        </div>
+                    </div>
+
+                    <!-- 門檻檢驗清單 (預設隱藏，學生回答後揭曉) -->
+                    <div id="checklist-container" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 20px; border-radius: var(--border-radius-md); display: none; flex-direction: column; gap: 10px; margin-top: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span>條件一：同意票數大於不同意票數？</span>
                             <span id="cond-more-agree" style="font-weight: bold;">計算中...</span>

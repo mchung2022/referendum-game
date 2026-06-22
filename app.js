@@ -757,15 +757,86 @@ function animateCounting() {
         
         if (stepCount >= steps) {
             clearInterval(timer);
-            // 動畫結束，檢驗門檻
-            checkReferendumThreshold(targetAgree, targetDisagree);
+            // 動畫結束，進入學生判斷環節
+            showJudgementSection(targetAgree, targetDisagree);
         }
     }, stepTime);
 }
 
-function checkReferendumThreshold(agree, disagree) {
-    const threshold = 2500; // 1/4 of 10,000 electors
+// ---------------- 新增：學生自主判斷公投門檻 ----------------
+function showJudgementSection(agree, disagree) {
+    const threshold = 2500; // 總選民 10000 人的 1/4 門檻
+    const isPassed = (agree > disagree) && (agree >= threshold);
     
+    // 決定正確的選項索引
+    let correctAnswerIdx = 0; // 通過
+    if (agree <= disagree) {
+        correctAnswerIdx = 1; // 不過 (同意票未多於不同意)
+    } else if (agree > disagree && agree < threshold) {
+        correctAnswerIdx = 2; // 不過 (同意票多於不同意，但未達總數 1/4)
+    }
+    
+    const container = document.getElementById("judgement-container");
+    const optionsContainer = document.getElementById("judgement-options");
+    const expPanel = document.getElementById("judgement-explanation");
+    
+    container.style.display = "block";
+    optionsContainer.innerHTML = "";
+    expPanel.classList.remove("active");
+    
+    // 預設將舊卡牌與按鈕隱藏
+    document.getElementById("checklist-container").style.display = "none";
+    document.getElementById("result-pass-card").classList.remove("active");
+    document.getElementById("result-fail-card").classList.remove("active");
+    document.getElementById("btn-finish-s4").style.display = "none";
+    
+    const options = [
+        { text: "👍 通過！(同意票數大於不同意票數，且同意票數達到 2,500 票門檻)", idx: 0 },
+        { text: "👎 不通過！(同意票數小於或等於不同意票數)", idx: 1 },
+        { text: "⚠️ 不通過！(同意票數雖然大於不同意票數，但同意票數未達 2,500 票之法定門檻)", idx: 2 }
+    ];
+    
+    const badges = ["A", "B", "C"];
+    
+    options.forEach((opt) => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.innerHTML = `<span class="option-badge">${badges[opt.idx]}</span> ${opt.text}`;
+        
+        btn.addEventListener("click", () => {
+            // 停用所有選項按鈕
+            const btns = optionsContainer.querySelectorAll(".option-btn");
+            btns.forEach(b => b.disabled = true);
+            
+            const isCorrect = (opt.idx === correctAnswerIdx);
+            
+            if (isCorrect) {
+                btn.classList.add("correct");
+                gameState.score += 500; // 答對加 500 分
+                expPanel.innerHTML = `🎉 <strong>判斷正確！獲得 500 分！</strong><br>你的法規計算能力非常優秀。以下是官方門檻檢驗明細：`;
+                expPanel.style.borderColor = "var(--accent)";
+                expPanel.style.background = "rgba(20, 184, 166, 0.1)";
+            } else {
+                btn.classList.add("incorrect");
+                btns[correctAnswerIdx].classList.add("correct");
+                expPanel.innerHTML = `❌ <strong>判斷錯誤！</strong><br>正確答案應為 <strong>${badges[correctAnswerIdx]}</strong>。以下是官方門檻檢驗明細：`;
+                expPanel.style.borderColor = "var(--danger)";
+                expPanel.style.background = "rgba(239, 68, 68, 0.1)";
+            }
+            
+            expPanel.classList.add("active");
+            
+            // 顯示檢驗明細與最終通過結果
+            document.getElementById("checklist-container").style.display = "flex";
+            revealReferendumResult(agree, disagree, isPassed);
+        });
+        
+        optionsContainer.appendChild(btn);
+    });
+}
+
+function revealReferendumResult(agree, disagree, isPassed) {
+    const threshold = 2500;
     const condMoreAgree = agree > disagree;
     const condReachThreshold = agree >= threshold;
     
@@ -788,9 +859,6 @@ function checkReferendumThreshold(agree, disagree) {
         elCond2.style.color = "var(--danger)";
     }
     
-    // 判定最終通過
-    const isPassed = condMoreAgree && condReachThreshold;
-    
     setTimeout(() => {
         if (isPassed) {
             document.getElementById("result-pass-card").classList.add("active");
@@ -798,7 +866,7 @@ function checkReferendumThreshold(agree, disagree) {
             document.getElementById("result-fail-card").classList.add("active");
         }
         
-        // 顯示最後按鈕
+        // 顯示結算前進按鈕
         const finishBtn = document.getElementById("btn-finish-s4");
         finishBtn.style.display = "flex";
         
@@ -806,7 +874,7 @@ function checkReferendumThreshold(agree, disagree) {
             stopStageTimer();
             finishGame();
         };
-    }, 800);
+    }, 1000);
 }
 
 
