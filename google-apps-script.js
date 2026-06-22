@@ -18,6 +18,12 @@
  */
 
 function doGet(e) {
+  // 防呆：若是直接在 Apps Script 編輯器點選「執行」，e 會是 undefined
+  if (!e || !e.parameter) {
+    return ContentService.createTextOutput("⚠️ 提示：您目前是從 Google Apps Script 編輯器直接按「執行」按鈕，此時系統沒有傳入網頁參數，所以會顯示此提示。這是正常的！請依照 README.md 的說明，將此專案「部署為網頁應用程式」，並使用部署產生的「網頁應用程式 URL」來連接遊戲前端即可。")
+      .setMimeType(ContentService.MimeType.TEXT);
+  }
+  
   var action = e.parameter.action;
   
   if (action === 'getLeaderboard') {
@@ -35,6 +41,14 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  // 防呆：若是直接在 Apps Script 編輯器點選「執行」，e 會是 undefined
+  if (!e) {
+    return sendJsonResponse({
+      success: false,
+      error: "⚠️ 提示：您目前是從 Apps Script 編輯器直接執行，請使用遊戲前端發送 POST 請求。"
+    });
+  }
+  
   try {
     var postData;
     if (e.postData && e.postData.contents) {
